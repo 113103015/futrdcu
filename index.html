@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>褪色者 - 城堡之謎</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&display=swap">
     <style>
         * {
             margin: 0;
@@ -426,7 +427,7 @@
             z-index: 9999;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             padding: 40px;
             overflow-y: auto;
@@ -439,12 +440,34 @@
             pointer-events: none;
         }
 
+        [hidden] { display: none !important; }
+        .intro-panel { width: 100%; max-width: 660px; margin: auto; text-align: center; }
+        .intro-ornament { color: #b89650; letter-spacing: 12px; margin-bottom: 32px; }
+        .intro-actions { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .intro-note { color: #b8ac98; margin-bottom: 24px; line-height: 1.8; }
+        .intro-panel .start-btn { max-width: 100%; padding: 18px 32px; }
+        .item-name.weapon-name, .item-detail-name.weapon-name, .weapon-name { color: #D7A06C; }
+        .item-name.relic-name, .item-detail-name.relic-name, .relic-name { color: #98BDAE; }
+        .item-name:hover { text-decoration: underline; }
+        .toast.acquisition { background: #171714; color: #d4c3a3; border: 1px solid #b89650; }
+        .toast { max-width: calc(100vw - 32px); width: max-content; }
+        .tutorial-text { white-space: pre-line; }
+        @media (max-width: 480px) {
+            #introScreen { padding: 24px 20px; }
+            .intro-subtitle, .intro-instructions { margin-bottom: 24px; }
+            .tutorial-content { padding: 24px; }
+            .status-bar { padding: 12px; gap: 12px; }
+            .status-left { gap: 12px; }
+        }
+
         .intro-title {
+            font-family: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
+            font-weight: 700;
             font-size: clamp(30px, 7vw, 48px);
             color: #b89650;
             margin-bottom: 30px;
             text-align: center;
-            letter-spacing: 4px;
+            letter-spacing: 0.18em;
             text-shadow: 0 0 20px rgba(184, 150, 80, 0.5);
         }
 
@@ -572,14 +595,27 @@
 </head>
 <body>
     <div id="introScreen">
-        <h1 class="intro-title">受詛咒的王城</h1>
-        <p class="intro-subtitle">你失去了記憶，只剩下成王的本能。在這座受詛咒的城堡中尋找那個『關鍵之物』...</p>
-        <ul class="intro-instructions">
-            <li>1. 透過選擇探索場景</li>
-            <li>2. 收集道具裝備以提升武力</li>
-            <li>3. 尋找賜福以儲存進度</li>
-        </ul>
-        <button class="start-btn" onclick="startGame()">開始探索</button>
+        <section id="titlePanel" class="intro-panel" aria-labelledby="gameTitle">
+            <div class="intro-ornament" aria-hidden="true">─ ◇ ─</div>
+            <h1 class="intro-title" id="gameTitle">受詛咒的王城</h1>
+            <button class="start-btn" onclick="showIntroduction()">開始遊戲</button>
+        </section>
+        <section id="introductionPanel" class="intro-panel" aria-labelledby="introductionTitle" hidden>
+            <h2 class="intro-title" id="introductionTitle" tabindex="-1">踏入迷霧之前</h2>
+            <p class="intro-subtitle">你在冰冷的石板間甦醒，往昔只剩模糊的殘影。古老王城寂靜無聲，遠處一縷微光，似乎正等待你的腳步。那些被遺落的事物，是否仍記得你的名字？</p>
+            <ul class="intro-instructions">
+                <li>探索場景，透過選項決定下一步。</li>
+                <li>戰鬥前留意武力門檻，裝備武器以應對危險。</li>
+                <li>收集道具，點擊背包中的物品名稱閱讀文本。</li>
+                <li>觸摸賜福儲存進度，死亡後可回到最後的存檔。</li>
+            </ul>
+            <p class="intro-note" id="existingSaveNotice" hidden>已有旅途存檔。選擇「繼續遊戲」可接續進度；若開始新旅途，新的存檔將取代原進度。</p>
+            <div class="intro-actions">
+                <button class="start-btn" id="continue-btn" onclick="continueGame()" hidden>繼續遊戲</button>
+                <button class="start-btn" id="new-game-btn" onclick="startGame()">進入王城</button>
+                <button class="back-btn" onclick="returnToTitle()">返回標題</button>
+            </div>
+        </section>
     </div>
 
     <div id="gameUI">
@@ -626,7 +662,7 @@
         <div class="tutorial-content">
             <div class="tutorial-title" id="tutorial-title">系統提示</div>
             <div class="tutorial-text" id="tutorial-text"></div>
-            <button class="tutorial-close-btn" onclick="window.closeTutorial()">我知道了</button>
+            <button class="tutorial-close-btn" onclick="window.closeTutorial()">我已知曉</button>
         </div>
     </div>
 
@@ -637,6 +673,7 @@
             power: 5,
             equippedWeapon: null,
             inventory: [],
+            hasSeenRelicTutorial: false,
             hasSeenWeaponTutorial: false,
             hasSeenGraceTutorial: false
         };
@@ -759,14 +796,24 @@
             return gameState.inventory.some(item => item.id === itemId);
         }
 
-        function showToast(message, isMemory = false) {
+        let toastTimer;
+
+        function showToast(message, isMemory = false, item = null) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = 'toast visible';
+            if (item) {
+                toast.classList.add('acquisition');
+                const name = document.createElement('span');
+                name.className = item.isWeapon ? 'weapon-name' : 'relic-name';
+                name.textContent = item.name;
+                toast.replaceChildren(document.createTextNode('獲得道具：'), name);
+            }
             if (isMemory) {
                 toast.classList.add('memory');
             }
-            setTimeout(() => {
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
                 toast.classList.remove('visible', 'memory');
             }, 4000);
         }
@@ -777,6 +824,8 @@
             gameState.power = 5;
             gameState.equippedWeapon = null;
             gameState.inventory = [];
+            sessionHasCheckpoint = false;
+            gameState.hasSeenRelicTutorial = false;
             gameState.hasSeenWeaponTutorial = false;
             gameState.hasSeenGraceTutorial = false;
             tutorialQueue.length = 0;
@@ -786,29 +835,51 @@
 
         let gameStarted = false;
         let renderTimer;
+        let sessionHasCheckpoint = false;
 
-        function startGame() {
-            if (gameStarted) return;
+        function showIntroduction() {
+            document.getElementById('titlePanel').hidden = true;
+            document.getElementById('introductionPanel').hidden = false;
+            const hasSave = isValidSave(readSave());
+            document.getElementById('continue-btn').hidden = !hasSave;
+            document.getElementById('existingSaveNotice').hidden = !hasSave;
+            document.getElementById('new-game-btn').textContent = hasSave ? '開始新旅途' : '進入王城';
+            document.getElementById('introductionTitle').focus();
+        }
+
+        function returnToTitle() {
+            document.getElementById('introductionPanel').hidden = true;
+            document.getElementById('titlePanel').hidden = false;
+            document.querySelector('#titlePanel button').focus();
+        }
+
+        function enterGame(restore) {
             gameStarted = true;
-            document.querySelector('.start-btn').disabled = true;
+            document.getElementById('introductionPanel').inert = true;
             const introScreen = document.getElementById('introScreen');
-            const gameUI = document.getElementById('gameUI');
-
-            // Keep the previous checkpoint until a new grace checkpoint is reached.
-            resetGameState();
-            updatePowerDisplay();
-            updateExplorationDisplay();
-
             introScreen.classList.add('hidden');
-
             setTimeout(() => {
                 introScreen.style.display = 'none';
-                gameUI.classList.add('visible');
-                renderNode('start');
+                document.getElementById('gameUI').classList.add('visible');
+                renderNode(restore ? gameState.currentNode : 'start', { restore });
             }, 1000);
         }
 
-        window.startGame = startGame;
+        function startGame() {
+            if (gameStarted) return;
+            // A fresh run leaves the existing checkpoint intact until the player saves.
+            resetGameState();
+            enterGame(false);
+        }
+
+        function continueGame() {
+            if (gameStarted) return;
+            if (loadGame()) enterGame(true);
+            else {
+                document.getElementById('existingSaveNotice').hidden = false;
+                document.getElementById('existingSaveNotice').textContent = '目前無法讀取存檔。你可以返回標題或開始新旅途。';
+            }
+        }
 
         const tutorialQueue = [];
         let tutorialVisible = false;
@@ -877,14 +948,20 @@
 
         function saveTutorialFlags() {
             const savedState = readSave();
-            if (!savedState) return;
+            if (!sessionHasCheckpoint || !savedState) return;
+            savedState.hasSeenRelicTutorial = gameState.hasSeenRelicTutorial;
             savedState.hasSeenWeaponTutorial = gameState.hasSeenWeaponTutorial;
             savedState.hasSeenGraceTutorial = gameState.hasSeenGraceTutorial;
             writeSave(savedState);
         }
 
-        function maybeShowNodeTutorials(node, acquiredWeapon = false) {
-            if (acquiredWeapon && !gameState.hasSeenWeaponTutorial) {
+        function maybeShowNodeTutorials(node, acquiredItem = null) {
+            if (acquiredItem && acquiredItem.id === 'old_pendant' && !gameState.hasSeenRelicTutorial) {
+                gameState.hasSeenRelicTutorial = true;
+                saveTutorialFlags();
+                enqueueTutorial('遺物與記憶', '你獲得了『褪色的護符』。\n\n開啟『背包』，即可查看旅途中取得的武器與道具。點擊物品名稱，能閱讀它所承載的詳細文本。\n\n有些記憶並未真正消逝。細細閱讀那些遺物的低語，或許能得到意想不到的收穫……');
+            }
+            if (acquiredItem && acquiredItem.isWeapon && !gameState.hasSeenWeaponTutorial) {
                 gameState.hasSeenWeaponTutorial = true;
                 saveTutorialFlags();
                 enqueueTutorial(
@@ -903,15 +980,26 @@
         }
 
         function saveGame() {
-            return writeSave(gameState);
+            const saved = writeSave(gameState);
+            if (saved) sessionHasCheckpoint = true;
+            return saved;
+        }
+
+        function isValidSave(savedState) {
+            return !!(savedState && Object.hasOwn(storyTree, savedState.currentNode)
+                && Number.isFinite(savedState.exploration) && Number.isFinite(savedState.power)
+                && Array.isArray(savedState.inventory)
+                && savedState.inventory.every(item => item && typeof item.id === 'string'));
         }
 
         function loadGame() {
             const savedState = readSave();
-            if (savedState && Object.hasOwn(storyTree, savedState.currentNode)
-                && Number.isFinite(savedState.exploration) && Number.isFinite(savedState.power)
-                && Array.isArray(savedState.inventory)
-                && savedState.inventory.every(item => item && typeof item.id === 'string')) {
+            if (isValidSave(savedState)) {
+                sessionHasCheckpoint = true;
+                // Older saves predate this tutorial; owning the pendant proves prior acquisition.
+                gameState.hasSeenRelicTutorial = gameState.hasSeenRelicTutorial
+                    || savedState.hasSeenRelicTutorial === true
+                    || savedState.inventory.some(item => item.id === 'old_pendant');
                 gameState.currentNode = savedState.currentNode;
                 gameState.exploration = savedState.exploration;
                 gameState.power = savedState.power;
@@ -978,7 +1066,7 @@
             } else {
                 filteredItems.forEach(item => {
                     html += '<li class="inventory-item">';
-                    html += `<span class="item-name" onclick="window.goToDetail('${item.id}')">${item.name}</span>`;
+                    html += `<span class="item-name ${item.isWeapon ? 'weapon-name' : 'relic-name'}" onclick="window.goToDetail('${item.id}')">${item.name}</span>`;
                     
                     if (item.isWeapon) {
                         const isEquipped = gameState.equippedWeapon && gameState.equippedWeapon.id === item.id;
@@ -1014,7 +1102,7 @@
             if (!selectedItem) return;
             
             let html = '<div class="item-detail-view">';
-            html += `<div class="item-detail-name">${selectedItem.name}</div>`;
+            html += `<div class="item-detail-name ${selectedItem.isWeapon ? 'weapon-name' : 'relic-name'}">${selectedItem.name}</div>`;
             html += `<div class="item-detail-desc">${selectedItem.desc}</div>`;
             
             if (selectedItem.isUnread && selectedItem.memoryText) {
@@ -1095,17 +1183,17 @@
             const restore = options && options.restore;
             gameState.currentNode = nodeId;
 
-            let acquiredWeapon = false;
+            let acquiredItem = null;
             if (!restore) {
                 gameState.exploration = Math.min(100, gameState.exploration + (node.explorationGain || 0));
 
                 if (node.itemGain && !hasItem(node.itemGain.id)) {
                     gameState.inventory.push(Object.assign({}, node.itemGain));
-                    acquiredWeapon = node.itemGain.isWeapon === true;
-                    showToast('獲得道具：' + node.itemGain.name);
+                    acquiredItem = node.itemGain;
+                    showToast('獲得道具：' + node.itemGain.name, false, node.itemGain);
                 }
 
-                maybeShowNodeTutorials(node, acquiredWeapon);
+                maybeShowNodeTutorials(node, acquiredItem);
 
                 if (node.isGrace) {
                     if (saveGame()) showToast('已發現賜福，進度已儲存');
