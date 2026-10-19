@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>褪色者 - 城堡之謎</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0a0a0a;
+            color: #d4c3a3;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .status-bar {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 12px 20px;
+            background-color: #111111;
+            border: 1px solid #b89650;
+            border-radius: 4px;
+        }
+
+        .status-left {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .status-label {
+            color: #b89650;
+            margin-right: 8px;
+        }
+
+        .status-value {
+            color: #d4c3a3;
+        }
+
+        .inventory-btn {
+            padding: 8px 20px;
+            background-color: transparent;
+            border: 1px solid #b89650;
+            color: #b89650;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .inventory-btn:hover {
+            background-color: #b89650;
+            color: #0a0a0a;
+        }
+
+        .exploration-bar {
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #cda052;
+            width: 0%;
+            transition: width 0.5s ease-in-out;
+        }
+
+        .game-container {
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .image-container {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 30vh;
+            margin-bottom: 20px;
+            background: transparent;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+
+        .image-container.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .image-error {
+            display: none;
+            color: #ff4444;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .image-error.visible {
+            display: block;
+        }
+
+
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto !important;
+            height: auto !important;
+            object-fit: contain !important;
+            border-radius: 4px;
+        }
+
+        .text-display {
+            min-height: 150px;
+            padding: 20px;
+            background-color: #111111;
+            border: 1px solid #b89650;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            line-height: 1.8;
+            font-size: 18px;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+
+        .text-display.visible {
+            opacity: 1;
+        }
+
+        .text-display.grace-active {
+            box-shadow: 0 0 30px rgba(205, 160, 82, 0.3);
+            text-shadow: 0 0 10px rgba(205, 160, 82, 0.5);
+        }
+
+        .choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .choice-btn {
+            padding: 15px 30px;
+            background-color: transparent;
+            border: 1px solid #b89650;
+            color: #d4c3a3;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background-color: #b89650;
+            color: #0a0a0a;
+            box-shadow: 0 0 15px rgba(205, 160, 82, 0.4);
+        }
+
+        .choice-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .choice-btn:focus {
+            outline: none;
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #444444;
+            color: #666666;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: rgba(10, 10, 10, 0.95);
+            border: 2px solid #b89650;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 30px rgba(205, 160, 82, 0.3);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            color: #b89650;
+            margin-bottom: 20px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .category-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .category-btn {
+            padding: 20px;
+            background-color: transparent;
+            border: 1px solid #b89650;
+            color: #d4c3a3;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .category-btn:hover {
+            background-color: #b89650;
+            color: #0a0a0a;
+            box-shadow: 0 0 15px rgba(205, 160, 82, 0.4);
+        }
+
+        .inventory-list {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .inventory-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #333333;
+            color: #d4c3a3;
+        }
+
+        .inventory-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-name {
+            font-size: 16px;
+            color: #cda052;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .item-name:hover {
+            color: #d4c3a3;
+        }
+
+        .equip-btn {
+            padding: 8px 15px;
+            background-color: transparent;
+            border: 1px solid #b89650;
+            color: #b89650;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .equip-btn:hover {
+            background-color: #b89650;
+            color: #0a0a0a;
+        }
+
+        .equip-btn.equipped {
+            background-color: #b89650;
+            color: #0a0a0a;
+        }
+
+        .empty-inventory {
+            text-align: center;
+            color: #666666;
+            padding: 20px;
+        }
+
+        .item-detail-view {
+            margin-bottom: 20px;
+        }
+
+        .item-detail-name {
+            font-size: 20px;
+            color: #cda052;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .item-detail-desc {
+            color: #aaaaaa;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .item-detail-memory {
+            color: #cda052;
+            font-style: italic;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: rgba(184, 150, 80, 0.1);
+            border-left: 3px solid #b89650;
+        }
+
+        .back-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: transparent;
+            border: 1px solid #b89650;
+            color: #b89650;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .back-btn:hover {
+            background-color: #b89650;
+            color: #0a0a0a;
+            box-shadow: 0 0 15px rgba(205, 160, 82, 0.4);
+        }
+
+        .modal-close-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: transparent;
+            border: 1px solid #b89650;
+            color: #b89650;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close-btn:hover {
+            background-color: #b89650;
+            color: #0a0a0a;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(184, 150, 80, 0.95);
+            color: #0a0a0a;
+            padding: 15px 30px;
+            border-radius: 4px;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 2000;
+            pointer-events: none;
+            box-shadow: 0 0 20px rgba(205, 160, 82, 0.5);
+        }
+
+        .toast.visible {
+            opacity: 1;
+        }
+
+        .toast.memory {
+            background-color: rgba(205, 160, 82, 0.95);
+            font-weight: bold;
+        }
+
+        #introScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0a0a0a;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            overflow-y: auto;
+            opacity: 1;
+            transition: opacity 1s ease-in-out;
+        }
+
+        #introScreen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .intro-title {
+            font-size: clamp(30px, 7vw, 48px);
+            color: #b89650;
+            margin-bottom: 30px;
+            text-align: center;
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px rgba(184, 150, 80, 0.5);
+        }
+
+        .intro-subtitle {
+            font-size: 18px;
+            color: #888888;
+            font-style: italic;
+            margin-bottom: 40px;
+            text-align: center;
+            line-height: 1.6;
+            max-width: 600px;
+        }
+
+        .intro-instructions {
+            list-style: none;
+            color: #d4c3a3;
+            margin-bottom: 40px;
+            line-height: 2;
+            text-align: center;
+        }
+
+        .intro-instructions li {
+            margin-bottom: 10px;
+        }
+
+        .start-btn {
+            padding: 20px 60px;
+            background-color: transparent;
+            border: 2px solid #b89650;
+            color: #b89650;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 2px;
+        }
+
+        .start-btn:hover {
+            background-color: #b89650;
+            color: #0a0a0a;
+            box-shadow: 0 0 30px rgba(205, 160, 82, 0.6);
+        }
+
+        #gameUI {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
+        }
+
+        #gameUI.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #tutorialModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        #tutorialModal.active {
+            display: flex;
+        }
+
+        .tutorial-content {
+            background-color: rgba(10, 10, 10, 0.98);
+            border: 3px solid #cda052;
+            border-radius: 8px;
+            padding: 40px;
+            max-height: 90vh;
+            overflow-y: auto;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 0 40px rgba(205, 160, 82, 0.5);
+        }
+
+        .tutorial-title {
+            font-size: 22px;
+            color: #cda052;
+            margin-bottom: 20px;
+            text-align: center;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        .tutorial-text {
+            color: #d4c3a3;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .tutorial-close-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: transparent;
+            border: 2px solid #cda052;
+            color: #cda052;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tutorial-close-btn:hover {
+            background-color: #cda052;
+            color: #0a0a0a;
+            box-shadow: 0 0 20px rgba(205, 160, 82, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div id="introScreen">
+        <h1 class="intro-title">受詛咒的王城</h1>
+        <p class="intro-subtitle">你失去了記憶，只剩下成王的本能。在這座受詛咒的城堡中尋找那個『關鍵之物』...</p>
+        <ul class="intro-instructions">
+            <li>1. 透過選擇探索場景</li>
+            <li>2. 收集道具裝備以提升武力</li>
+            <li>3. 尋找賜福以儲存進度</li>
+        </ul>
+        <button class="start-btn" onclick="startGame()">開始探索</button>
+    </div>
+
+    <div id="gameUI">
+    <div class="status-bar">
+        <div class="status-left">
+            <div class="status-item">
+                <span class="status-label">⚔️ 武力值:</span>
+                <span class="status-value" id="power-text">5</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">探索度:</span>
+                <span class="status-value" id="exploration-text">0%</span>
+            </div>
+        </div>
+        <button class="inventory-btn" id="inventory-btn">背包</button>
+    </div>
+
+    <div class="exploration-bar">
+        <div class="progress-container">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="image-container" id="image-container">
+            <img id="scene-image" src="" alt="場景圖片">
+            <div class="image-error" id="image-error"></div>
+        </div>
+        <div class="text-display" id="text-display"></div>
+        <div class="choices-container" id="choices-container"></div>
+    </div>
+
+    <div class="modal-overlay" id="inventory-modal">
+        <div class="modal-content">
+            <div class="modal-title">背包</div>
+            <div id="inventory-content"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    </div>
+
+    <div id="tutorialModal" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" aria-describedby="tutorial-text">
+        <div class="tutorial-content">
+            <div class="tutorial-title" id="tutorial-title">系統提示</div>
+            <div class="tutorial-text" id="tutorial-text"></div>
+            <button class="tutorial-close-btn" onclick="window.closeTutorial()">我知道了</button>
+        </div>
+    </div>
+
+    <script>
+        const gameState = {
+            currentNode: 'start',
+            exploration: 0,
+            power: 5,
+            equippedWeapon: null,
+            inventory: [],
+            hasSeenWeaponTutorial: false,
+            hasSeenGraceTutorial: false
+        };
+
+        let currentInventoryView = 'category';
+        let selectedCategory = null;
+        let selectedItem = null;
+
+        const storyTree = {
+            'start': {
+                id: 'start',
+                text: '頭痛欲裂。你在冰冷的石板大廳中甦醒。前方有一閃而過的微弱金光。',
+                explorationGain: 0,
+                choices: [
+                    { text: '起身，走向微光', nextId: 'grace_1' },
+                    { text: '檢查身上', nextId: 'items' }
+                ]
+            },
+            'items': {
+                id: 'items',
+                text: '你摸索著口袋，指尖觸碰到一塊冰冷的金屬...',
+                explorationGain: 0,
+                itemGain: {
+                    id: 'old_pendant',
+                    name: '褪色的護符',
+                    desc: '失去光澤的護符。內側刻有模糊的王室徽記。',
+                    isWeapon: false,
+                    isUnread: true,
+                    memoryText: '（記憶湧現：你曾是誓言成王的褪色者... 探索度 +5）',
+                    expGain: 5,
+                    powGain: 0
+                },
+                choices: [
+                    { text: '將護符收好，走向微光', nextId: 'grace_1' }
+                ]
+            },
+            'grace_1': {
+                id: 'grace_1',
+                text: '【賜福點】你觸摸了失色的賜福。一絲溫暖傳入掌心，你稍微感到心安。',
+                explorationGain: 5,
+                isGrace: true,
+                image: './images/grace.jpg',
+                choices: [
+                    { text: '調查旁邊的屍體', nextId: 'get_sword' },
+                    { text: '走向深淵長廊', nextId: 'corridor' },
+                    { text: '嘗試推開長廊底部的青銅大門', nextId: 'open_gate', requiredItem: 'gate_key' }
+                ]
+            },
+            'get_sword': {
+                id: 'get_sword',
+                text: '你在屍體手中找到了一把『生鏽的直劍』，握住劍柄的瞬間，熟悉的重量讓你想起某些片段...',
+                explorationGain: 5,
+                itemGain: {
+                    id: 'rusted_sword',
+                    name: '生鏽的直劍',
+                    desc: '已經生鏽的直劍，從枯骨手中獲得。沒有裝飾。',
+                    isWeapon: true,
+                    power: 15,
+                    isUnread: true,
+                    memoryText: '（記憶湧現：你曾用此劍斬殺過無數妖獸... 武力值 +5）',
+                    expGain: 0,
+                    powGain: 5
+                },
+                choices: [
+                    { text: '走向深淵長廊', nextId: 'corridor' }
+                ]
+            },
+            'corridor': {
+                id: 'corridor',
+                text: '長廊盡頭，一隻身形扭曲的『守靈犬』發出低吼，擋住了去路。牠的雙眼透著猩紅的兇光。',
+                explorationGain: 10,
+                image: './images/beast.png',
+                choices: [
+                    { text: '拔劍迎擊！(需要武力 20)', type: 'combat', requiredPower: 20, successId: 'win', failId: 'death' },
+                    { text: '驚慌退回賜福點', nextId: 'grace_1' }
+                ]
+            },
+            'win': {
+                id: 'win',
+                text: '你依憑著本能斬下妖獸的頭顱。黑血噴湧而出，門後的秘密向你敞開...',
+                explorationGain: 15,
+                itemGain: {
+                    id: 'gate_key',
+                    name: '地下室鑰匙',
+                    desc: '鏽跡斑斑的沉重鑰匙，上面附著著城堡的詛咒氣息。',
+                    isWeapon: false,
+                    isUnread: false
+                },
+                choices: [
+                    { text: '返回賜福點', nextId: 'grace_1' }
+                ]
+            },
+            'death': {
+                id: 'death',
+                text: '【YOU DIED】你的武藝尚未恢復，妖獸輕易地咬碎了你的頸脖。眼前陷入無盡的黑暗...',
+                explorationGain: 0,
+                choices: [
+                    { text: '從最後的賜福復活', action: 'loadSave' }
+                ]
+            },
+            'open_gate': {
+                id: 'open_gate',
+                text: '你用地下室鑰匙打開了沉重的青銅門... 內藏的驚天秘密終於揭開，你的成王之路才剛剛開始！（未完待續）',
+                explorationGain: 20,
+                choices: [
+                    { text: '重新開始', nextId: 'start' }
+                ]
+            }
+        };
+
+        function getTotalPower() {
+            let total = gameState.power;
+            if (gameState.equippedWeapon) {
+                total += gameState.equippedWeapon.power || 0;
+            }
+            return total;
+        }
+
+        function hasItem(itemId) {
+            return gameState.inventory.some(item => item.id === itemId);
+        }
+
+        function showToast(message, isMemory = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast visible';
+            if (isMemory) {
+                toast.classList.add('memory');
+            }
+            setTimeout(() => {
+                toast.classList.remove('visible', 'memory');
+            }, 4000);
+        }
+
+        function resetGameState() {
+            gameState.currentNode = 'start';
+            gameState.exploration = 0;
+            gameState.power = 5;
+            gameState.equippedWeapon = null;
+            gameState.inventory = [];
+            gameState.hasSeenWeaponTutorial = false;
+            gameState.hasSeenGraceTutorial = false;
+            tutorialQueue.length = 0;
+            closeTutorial();
+            clearTimeout(renderTimer);
+        }
+
+        let gameStarted = false;
+        let renderTimer;
+
+        function startGame() {
+            if (gameStarted) return;
+            gameStarted = true;
+            document.querySelector('.start-btn').disabled = true;
+            const introScreen = document.getElementById('introScreen');
+            const gameUI = document.getElementById('gameUI');
+
+            // Keep the previous checkpoint until a new grace checkpoint is reached.
+            resetGameState();
+            updatePowerDisplay();
+            updateExplorationDisplay();
+
+            introScreen.classList.add('hidden');
+
+            setTimeout(() => {
+                introScreen.style.display = 'none';
+                gameUI.classList.add('visible');
+                renderNode('start');
+            }, 1000);
+        }
+
+        window.startGame = startGame;
+
+        const tutorialQueue = [];
+        let tutorialVisible = false;
+        let tutorialPreviousFocus = null;
+
+        function showTutorial(title, text) {
+            const modal = document.getElementById('tutorialModal');
+            document.getElementById('tutorial-title').textContent = title;
+            document.getElementById('tutorial-text').textContent = text;
+            tutorialPreviousFocus = document.activeElement;
+            modal.classList.add('active');
+            document.getElementById('gameUI').inert = true;
+            tutorialVisible = true;
+            modal.querySelector('button').focus();
+        }
+
+        function enqueueTutorial(title, text) {
+            tutorialQueue.push({ title, text });
+            if (!tutorialVisible) {
+                const next = tutorialQueue.shift();
+                showTutorial(next.title, next.text);
+            }
+        }
+
+        function closeTutorial() {
+            if (!tutorialVisible) return;
+            if (tutorialQueue.length) {
+                const next = tutorialQueue.shift();
+                showTutorial(next.title, next.text);
+                return;
+            }
+            document.getElementById('tutorialModal').classList.remove('active');
+            document.getElementById('gameUI').inert = false;
+            tutorialVisible = false;
+            if (tutorialPreviousFocus && tutorialPreviousFocus.isConnected) {
+                tutorialPreviousFocus.focus();
+            }
+        }
+
+        window.closeTutorial = closeTutorial;
+        document.getElementById('tutorialModal').addEventListener('keydown', event => {
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                document.querySelector('#tutorialModal button').focus();
+            }
+        });
+
+        function readSave() {
+            try {
+                const data = JSON.parse(localStorage.getItem('eldenRingGameSave'));
+                return data && typeof data === 'object' && !Array.isArray(data) ? data : null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function writeSave(state) {
+            try {
+                localStorage.setItem('eldenRingGameSave', JSON.stringify(state));
+                return true;
+            } catch (error) {
+                showToast('瀏覽器無法儲存進度，請允許此網站使用本機儲存空間');
+                return false;
+            }
+        }
+
+        function saveTutorialFlags() {
+            const savedState = readSave();
+            if (!savedState) return;
+            savedState.hasSeenWeaponTutorial = gameState.hasSeenWeaponTutorial;
+            savedState.hasSeenGraceTutorial = gameState.hasSeenGraceTutorial;
+            writeSave(savedState);
+        }
+
+        function maybeShowNodeTutorials(node, acquiredWeapon = false) {
+            if (acquiredWeapon && !gameState.hasSeenWeaponTutorial) {
+                gameState.hasSeenWeaponTutorial = true;
+                saveTutorialFlags();
+                enqueueTutorial(
+                    '【系統提示：戰鬥與武力】',
+                    '你獲得了第一把武器。請點擊上方「背包」，進入「武器」並按下「裝備」以提升武力值。危險遭遇有武力門檻，若武力不足將導致死亡。'
+                );
+            }
+            if (node.isGrace && !gameState.hasSeenGraceTutorial) {
+                gameState.hasSeenGraceTutorial = true;
+                saveTutorialFlags();
+                enqueueTutorial(
+                    '【系統提示：賜福與存檔】',
+                    '你發現了賜福。觸摸賜福會自動儲存目前進度與背包狀態；獲得或裝備武器後，記得回到賜福再次存檔。若不幸死亡，可從最後觸摸的賜福點重新甦醒。'
+                );
+            }
+        }
+
+        function saveGame() {
+            return writeSave(gameState);
+        }
+
+        function loadGame() {
+            const savedState = readSave();
+            if (savedState && Object.hasOwn(storyTree, savedState.currentNode)
+                && Number.isFinite(savedState.exploration) && Number.isFinite(savedState.power)
+                && Array.isArray(savedState.inventory)
+                && savedState.inventory.every(item => item && typeof item.id === 'string')) {
+                gameState.currentNode = savedState.currentNode;
+                gameState.exploration = savedState.exploration;
+                gameState.power = savedState.power;
+                gameState.inventory = savedState.inventory || [];
+                gameState.equippedWeapon = savedState.equippedWeapon || null;
+                gameState.hasSeenWeaponTutorial = gameState.hasSeenWeaponTutorial || savedState.hasSeenWeaponTutorial === true;
+                gameState.hasSeenGraceTutorial = gameState.hasSeenGraceTutorial || savedState.hasSeenGraceTutorial === true;
+                return true;
+            }
+            return false;
+        }
+
+        function openInventory() {
+            currentInventoryView = 'category';
+            selectedCategory = null;
+            selectedItem = null;
+            renderInventoryModal();
+            document.getElementById('inventory-modal').classList.add('active');
+        }
+
+        function renderInventoryModal() {
+            const content = document.getElementById('inventory-content');
+            
+            if (currentInventoryView === 'category') {
+                renderCategoryView(content);
+            } else if (currentInventoryView === 'list') {
+                renderListView(content);
+            } else if (currentInventoryView === 'detail') {
+                renderDetailView(content);
+            }
+        }
+
+        function renderCategoryView(content) {
+            const weapons = gameState.inventory.filter(item => item.isWeapon);
+            const items = gameState.inventory.filter(item => !item.isWeapon);
+            
+            let html = '<div class="category-buttons">';
+            
+            html += `<button class="category-btn" onclick="window.goToList('weapon')">武器 (${weapons.length})</button>`;
+            html += `<button class="category-btn" onclick="window.goToList('item')">道具 (${items.length})</button>`;
+            
+            html += '</div>';
+            html += '<button class="modal-close-btn" onclick="closeInventory()">關閉背包</button>';
+            
+            content.innerHTML = html;
+        }
+
+        window.goToList = function(category) {
+            selectedCategory = category;
+            currentInventoryView = 'list';
+            renderInventoryModal();
+        };
+
+        function renderListView(content) {
+            const filteredItems = gameState.inventory.filter(item => {
+                if (selectedCategory === 'weapon') return item.isWeapon;
+                return !item.isWeapon;
+            });
+            
+            let html = '<ul class="inventory-list">';
+            
+            if (filteredItems.length === 0) {
+                html += '<li class="empty-inventory">此分類沒有物品</li>';
+            } else {
+                filteredItems.forEach(item => {
+                    html += '<li class="inventory-item">';
+                    html += `<span class="item-name" onclick="window.goToDetail('${item.id}')">${item.name}</span>`;
+                    
+                    if (item.isWeapon) {
+                        const isEquipped = gameState.equippedWeapon && gameState.equippedWeapon.id === item.id;
+                        html += `<button class="equip-btn ${isEquipped ? 'equipped' : ''}" onclick="window.equipItem('${item.id}', event)">${isEquipped ? '[已裝備]' : '[裝備]'}</button>`;
+                    }
+                    
+                    html += '</li>';
+                });
+            }
+            
+            html += '</ul>';
+            html += '<button class="back-btn" onclick="window.goToCategory()">返回分類</button>';
+            html += '<button class="modal-close-btn" onclick="closeInventory()">關閉背包</button>';
+            
+            content.innerHTML = html;
+        }
+
+        window.goToCategory = function() {
+            currentInventoryView = 'category';
+            selectedCategory = null;
+            renderInventoryModal();
+        };
+
+        window.goToDetail = function(itemId) {
+            selectedItem = gameState.inventory.find(item => item.id === itemId);
+            if (selectedItem) {
+                currentInventoryView = 'detail';
+                renderInventoryModal();
+            }
+        };
+
+        function renderDetailView(content) {
+            if (!selectedItem) return;
+            
+            let html = '<div class="item-detail-view">';
+            html += `<div class="item-detail-name">${selectedItem.name}</div>`;
+            html += `<div class="item-detail-desc">${selectedItem.desc}</div>`;
+            
+            if (selectedItem.isUnread && selectedItem.memoryText) {
+                selectedItem.isUnread = false;
+                html += `<div class="item-detail-memory">${selectedItem.memoryText}</div>`;
+                
+                showToast(selectedItem.memoryText, true);
+                
+                if (selectedItem.expGain) {
+                    gameState.exploration = Math.min(100, gameState.exploration + selectedItem.expGain);
+                    updateExplorationDisplay();
+                }
+                if (selectedItem.powGain) {
+                    gameState.power += selectedItem.powGain;
+                    updatePowerDisplay();
+                }
+                
+                saveGame();
+            }
+            
+            html += '</div>';
+            html += '<button class="back-btn" onclick="window.goToListFromDetail()">返回列表</button>';
+            html += '<button class="modal-close-btn" onclick="closeInventory()">關閉背包</button>';
+            
+            content.innerHTML = html;
+        }
+
+        window.goToListFromDetail = function() {
+            currentInventoryView = 'list';
+            renderInventoryModal();
+        };
+
+        window.equipItem = function(itemId, event) {
+            event.stopPropagation();
+            const item = gameState.inventory.find(i => i.id === itemId);
+            if (!item) return;
+            
+            const isEquipped = gameState.equippedWeapon && gameState.equippedWeapon.id === itemId;
+            
+            if (isEquipped) {
+                gameState.equippedWeapon = null;
+            } else {
+                gameState.equippedWeapon = item;
+            }
+            
+            updatePowerDisplay();
+            renderInventoryModal();
+        };
+
+        function closeInventory() {
+            const modal = document.getElementById('inventory-modal');
+            modal.classList.remove('active');
+        }
+
+        window.closeInventory = closeInventory;
+
+        function updatePowerDisplay() {
+            const powerText = document.getElementById('power-text');
+            const totalPower = getTotalPower();
+            if (gameState.equippedWeapon) {
+                powerText.textContent = `${totalPower} (裝備中: ${gameState.equippedWeapon.name})`;
+            } else {
+                powerText.textContent = totalPower;
+            }
+        }
+
+        function updateExplorationDisplay() {
+            const progressFill = document.getElementById('progress-fill');
+            const explorationText = document.getElementById('exploration-text');
+            progressFill.style.width = gameState.exploration + '%';
+            explorationText.textContent = gameState.exploration + '%';
+        }
+
+        function renderNode(nodeId, options) {
+            const node = storyTree[nodeId];
+            if (!node) return;
+
+            const restore = options && options.restore;
+            gameState.currentNode = nodeId;
+
+            let acquiredWeapon = false;
+            if (!restore) {
+                gameState.exploration = Math.min(100, gameState.exploration + (node.explorationGain || 0));
+
+                if (node.itemGain && !hasItem(node.itemGain.id)) {
+                    gameState.inventory.push(Object.assign({}, node.itemGain));
+                    acquiredWeapon = node.itemGain.isWeapon === true;
+                    showToast('獲得道具：' + node.itemGain.name);
+                }
+
+                maybeShowNodeTutorials(node, acquiredWeapon);
+
+                if (node.isGrace) {
+                    if (saveGame()) showToast('已發現賜福，進度已儲存');
+                }
+            }
+
+            const imageContainer = document.getElementById('image-container');
+            const sceneImage = document.getElementById('scene-image');
+            const textDisplay = document.getElementById('text-display');
+            const choicesContainer = document.getElementById('choices-container');
+
+            imageContainer.classList.remove('visible');
+            textDisplay.classList.remove('visible', 'grace-active');
+            choicesContainer.innerHTML = '';
+
+            clearTimeout(renderTimer);
+            renderTimer = setTimeout(() => {
+                const imageError = document.getElementById('image-error');
+                imageError.classList.remove('visible');
+                sceneImage.style.display = 'block';
+
+                if (node.image) {
+                    sceneImage.src = node.image;
+                    
+                    sceneImage.onload = function() {
+                        imageContainer.classList.add('visible');
+                    };
+                    
+                    sceneImage.onerror = function() {
+                        sceneImage.style.display = 'none';
+                        imageError.textContent = `找不到圖片，請確認檔案是否確切放在 ${node.image}`;
+                        imageError.classList.add('visible');
+                        imageContainer.classList.add('visible');
+                    };
+                } else {
+                    imageContainer.classList.remove('visible');
+                }
+
+                textDisplay.innerHTML = node.text;
+                textDisplay.classList.add('visible');
+                
+                if (node.isGrace) {
+                    textDisplay.classList.add('grace-active');
+                }
+
+                node.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    
+                    if (choice.requiredItem && !hasItem(choice.requiredItem)) {
+                        btn.disabled = true;
+                        const itemNames = {
+                            'gate_key': '地下室鑰匙'
+                        };
+                        const itemName = itemNames[choice.requiredItem] || choice.requiredItem;
+                        btn.textContent = `🔒 ${choice.text} (缺少關鍵道具：${itemName})`;
+                    } else {
+                        btn.textContent = choice.text;
+                    }
+                    
+                    if (choice.action === 'loadSave') {
+                        btn.onclick = () => {
+                            if (loadGame()) {
+                                renderNode(gameState.currentNode, { restore: true });
+                            } else {
+                                showToast('沒有可用的存檔');
+                                renderNode('start');
+                            }
+                        };
+                    } else if (choice.type === 'combat') {
+                        btn.onclick = () => {
+                            const totalPower = getTotalPower();
+                            if (totalPower >= choice.requiredPower) {
+                                renderNode(choice.successId);
+                            } else {
+                                renderNode(choice.failId);
+                            }
+                        };
+                    } else {
+                        btn.onclick = () => {
+                            if (nodeId === 'open_gate' && choice.nextId === 'start') resetGameState();
+                            renderNode(choice.nextId);
+                        };
+                    }
+                    
+                    choicesContainer.appendChild(btn);
+                });
+
+                updatePowerDisplay();
+                updateExplorationDisplay();
+            }, 300);
+        }
+
+        document.getElementById('inventory-btn').addEventListener('click', openInventory);
+        document.getElementById('inventory-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'inventory-modal') {
+                window.closeInventory();
+            }
+        });
+    </script>
+</body>
+</html>
