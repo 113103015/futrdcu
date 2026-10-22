@@ -109,6 +109,8 @@
             align-items: center;
             width: 100%;
             height: 30vh;
+            height: 30svh;
+            flex-shrink: 0;
             margin-bottom: 20px;
             background: transparent;
             opacity: 0;
@@ -716,6 +718,7 @@
                 explorationGain: 5,
                 isGrace: true,
                 image: './images/grace.jpg',
+                imageAlt: '昏暗石地上，金色賜福光芒自灰燼中央升起，光環環繞四周。',
                 choices: [
                     { text: '調查旁邊的屍體', nextId: 'get_sword' },
                     { text: '走向深淵長廊', nextId: 'corridor' },
@@ -1216,19 +1219,24 @@
                 sceneImage.style.display = 'block';
 
                 if (node.image) {
-                    sceneImage.src = node.image;
-                    
+                    sceneImage.alt = node.imageAlt || '場景圖片';
                     sceneImage.onload = function() {
-                        imageContainer.classList.add('visible');
+                        if (gameState.currentNode === nodeId) imageContainer.classList.add('visible');
                     };
                     
                     sceneImage.onerror = function() {
+                        if (gameState.currentNode !== nodeId) return;
                         sceneImage.style.display = 'none';
                         imageError.textContent = `找不到圖片，請確認檔案是否確切放在 ${node.image}`;
                         imageError.classList.add('visible');
                         imageContainer.classList.add('visible');
                     };
+                    // Register callbacks before src so cached images are handled too.
+                    sceneImage.src = node.image;
                 } else {
+                    sceneImage.onload = null;
+                    sceneImage.onerror = null;
+                    sceneImage.removeAttribute('src');
                     imageContainer.classList.remove('visible');
                 }
 
