@@ -21,10 +21,9 @@ python3 -m http.server 8000 --bind 0.0.0.0
 
 ## 場景圖片
 
-以下圖片尚未提供，可稍後放入對應路徑：
+`images/grace.jpg` 已包含在專案中，為發現賜福時顯示的原始 JPEG 素材，會等比例縮放並置中。
 
-- `images/grace.jpg`
-- `images/beast.png`
+`images/beast.png` 尚未提供，可稍後補上。
 
 缺少圖片時會顯示提示，文字探索仍可進行。
 
